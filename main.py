@@ -1,21 +1,25 @@
 ##  IMPORTS ##
 #   GUI
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 #   Selenium
 import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+#   Openpyxl
+from openpyxl import Workbook, load_workbook
 
 #   Misc.
 import time
 
+
 ##  CODE ##
 #   LOGIN FUNCTION
-def login(username, password): 
+def login(username, password):
     service = Service()
     option = webdriver.ChromeOptions()
+    #option.add_argument('--headless')
     driver = webdriver.Chrome(service=service, options=option)
     url = "https://www.twitter.com/login"
     driver.get(url)
@@ -47,15 +51,29 @@ def tweet(driver, tweet_content):
     time.sleep(2)
     page_button = driver.find_element(By.XPATH, "//div[@role='button' and .//span[text()='Post']]")
     page_button.click()
-    input()
+    time.sleep(2)
 
 def main(username, password, tweet_content):
     driver = login(username, password)
     time.sleep(2)
     tweet(driver, tweet_content)
 
-def interface():
+def import_xlsx(filename):
+    wb=load_workbook(filename)
+    ws = wb.active
+    max_row=ws.max_row
+    for row in range(1,max_row+1):
+        username=(ws['a' + str(row)].value)
+        password=(ws['b' + str(row)].value)
+        tweet_content=(ws['c' + str(row)].value)
+        if username and password and tweet_content is not None:
+            main(username, password, tweet_content)
+        else:
+            print("Error submitting content in line "+str(row))
+            continue
 
+def interface():
+    
     def submit():
         username = username_entry.get()
         password = password_entry.get()
@@ -73,6 +91,11 @@ def interface():
             tweet_text.delete("1.0", "end")
             tweet_text.insert("1.0", tweet_content[:280])
 
+    def select_file():
+        filename = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
+        import_xlsx(filename)
+
+    
     root = tk.Tk()
     root.title("TweetBot")
     root.configure(bg='#1DA1F2')
@@ -115,8 +138,14 @@ def interface():
 
     tweet_text.bind("<KeyRelease>", check_length)
 
-    submit_button = tk.Button(root, text="Submit", command=submit, font=("Arial", 18), fg='#1DA1F2', bg='white')
-    submit_button.pack()
+    button_frame = tk.Frame(root, bg='#1DA1F2')
+    button_frame.pack()
+
+    submit_button = tk.Button(button_frame, text="Submit", command=submit, font=("Arial", 18), fg='#1DA1F2', bg='white')
+    submit_button.pack(side='left')
+
+    import_button = tk.Button(button_frame, text="Import XLSX", command=select_file, font=("Arial", 18), fg='#1DA1F2', bg='white')
+    import_button.pack(side='left')
 
     root.mainloop()
 
